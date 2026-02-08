@@ -1,3 +1,4 @@
+import os
 import cv2
 import json
 import time
@@ -9,7 +10,7 @@ from ultralytics import YOLO
 # =========================
 
 CAMERA_INDEX = 0
-MODEL_PATH = "yolov8s.pt"
+MODEL_PATH = "yolov8l.pt"
 LANE_FILE = "lanes.json"
 
 VEHICLE_CLASSES = ["car", "truck", "bus"]
@@ -90,11 +91,26 @@ if not cap.isOpened():
 cv2.namedWindow("Intersection")
 cv2.setMouseCallback("Intersection", mouse_callback)
 
-print("\nINSTRUCTIONS:")
-print("Left click  : Add lane point")
-print("Press 'n'   : Finish current lane")
-print("Press 's'   : Save lanes and start detection")
-print("Press 'q'   : Quit\n")
+# CHECK IF LANES ALREADY EXIST
+if os.path.exists(LANE_FILE):
+    try:
+        with open(LANE_FILE, "r") as f:
+            lanes = json.load(f)
+        drawing_mode = False
+        lane_cycle = list(lanes.keys())
+        print(f"✅ Lanes loaded from {LANE_FILE}")
+        print(f"Starting detection mode with {len(lanes)} lanes\n")
+    except json.JSONDecodeError:
+        lanes = {}
+        drawing_mode = True
+        print(
+            f"⚠️  {LANE_FILE} is empty or invalid JSON. Entering drawing mode.\n")
+else:
+    print("\nINSTRUCTIONS:")
+    print("Left click  : Add lane point")
+    print("Press 'n'   : Finish current lane")
+    print("Press 's'   : Save lanes and start detection")
+    print("Press 'q'   : Quit\n")
 
 while True:
     ret, frame = cap.read()
