@@ -1,3 +1,4 @@
 /venv
 yolov8l.pt
 yolov8s.pt
+.DS_Store

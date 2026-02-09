@@ -2,7 +2,7 @@ import cv2
 import json
 import time
 import numpy as np
-import requests
+import serial
 from ultralytics import YOLO
 
 # =========================
@@ -13,7 +13,8 @@ CAMERA_INDEX = 0
 MODEL_PATH = "yolov8l.pt"
 LANE_FILE = "lanes.json"
 
-ARDUINO_IP = "http://192.168.1.100"  # Update with your ESP8266 IP
+SERIAL_PORT = "/dev/cu.debug-console"  # Arduino serial port
+BAUD_RATE = 115200
 
 VEHICLE_CLASSES = ["car", "truck", "bus"]
 
@@ -76,28 +77,6 @@ cap = cv2.VideoCapture(CAMERA_INDEX)
 if not cap.isOpened():
     raise RuntimeError("❌ Webcam not detected")
 
-print("✅ Webcam opened. Starting detection...")
-
-# Set Arduino to MANUAL mode and initialize first green light
-try:
-    requests.get(f"{ARDUINO_IP}/mode?set=manual", timeout=1)
-    print("✅ Arduino set to MANUAL mode")
-    # Set first lane to green
-    send_to_arduino(lane_order[0], "green")
-    print(f"✅ Initial green signal sent to {lane_order[0]}")
-except Exception as e:
-    print(f"⚠️  Arduino connection failed: {e}")
-    print("Continuing without Arduino control...")
-
-cv2.namedWindow("Intersection")
-
-# =========================
-# VEHICLE MEMORY (lightweight tracking)
-# =========================
-
-vehicle_memory = {}
-vehicle_id_counter = 0
-
 # =========================
 # HELPERS
 # =========================
@@ -124,21 +103,17 @@ def infer_direction(prev, curr, threshold=8):
 
 
 def send_to_arduino(lane, color):
-    """Send traffic light command to Arduino"""
+    """Send traffic light command to Arduino via serial"""
     try:
         arduino_lane = LANE_TO_ARDUINO.get(lane)
-        if not arduino_lane:
+        if not arduino_lane or not ser or not ser.is_open:
             return
 
-        url = f"{ARDUINO_IP}/control"
-        params = {
-            "lane": arduino_lane,
-            "color": color.lower(),
-            "state": 1
-        }
-        requests.get(url, params=params, timeout=0.5)
+        # Format: "lane,color,state\n" e.g., "north,green,1\n"
+        command = f"{arduino_lane},{color.lower()},1\n"
+        ser.write(command.encode())
     except Exception as e:
-        pass  # Silently continue if Arduino is unreachable
+        pass  # Silently continue if serial fails
 
 
 def update_traffic_lights():
@@ -165,6 +140,40 @@ def update_traffic_lights():
 
     for lane in lanes:
         lanes[lane]["signal"] = light_state if lane == active_lane else "RED"
+
+
+# =========================
+# INIT SERIAL CONNECTION
+# =========================
+
+print("✅ Webcam opened. Starting detection...")
+
+# Initialize serial connection
+ser = None
+try:
+    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+    time.sleep(2)  # Wait for Arduino to initialize
+    print(f"✅ Serial connection established on {SERIAL_PORT}")
+    # Send initial green to first lane
+    send_to_arduino(lane_order[0], "green")
+    print(f"✅ Initial green signal sent to {lane_order[0]}")
+except Exception as e:
+    print(f"⚠️  Serial connection failed: {e}")
+    print("Continuing without Arduino control...")
+    ser = None
+
+cv2.namedWindow("Intersection")
+
+# =========================
+# VEHICLE MEMORY (lightweight tracking)
+# =========================
+
+vehicle_memory = {}
+vehicle_id_counter = 0
+
+# =========================
+# MAIN LOOP
+# =========================
 
 
 # =========================
@@ -262,12 +271,10 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
-# Cleanup: Return Arduino to AUTO mode
-try:
-    requests.get(f"{ARDUINO_IP}/mode?set=auto", timeout=1)
-    print("\n✅ Arduino set back to AUTO mode")
-except:
-    pass
+# Cleanup: Close serial connection
+if ser and ser.is_open:
+    ser.close()
+    print("\n✅ Serial connection closed")
 
 cap.release()
 cv2.destroyAllWindows()

@@ -5,8 +5,18 @@
 #include <ArduinoJson.h>
 
 // ====== WiFi Credentials ======
-const char *ssid = "Insaf-SLT-Fiber-2.4G";
-const char *password = "InsafD@1234";
+struct WiFiCredentials
+{
+    const char *ssid;
+    const char *password;
+};
+
+// Add multiple WiFi networks - will connect to first available one
+WiFiCredentials wifiNetworks[] = {
+    {"Insaf-SLT-Fiber-2.4G", "InsafD@1234"},
+    {"YourSecondWiFi", "password2"},
+    {"YourThirdWiFi", "password3"}};
+const int numNetworks = sizeof(wifiNetworks) / sizeof(wifiNetworks[0]);
 
 // ====== Web Server ======
 ESP8266WebServer server(80);
@@ -32,6 +42,15 @@ struct Lane
 };
 
 // ====== Lanes ======
+// IMPORTANT: Lane mapping must match Python intersection_final.py
+// Python → Arduino:
+//   lane_1 (UP direction)    → north
+//   lane_2 (DOWN direction)  → south
+//   lane_3 (RIGHT direction) → east
+//   lane_4 (LEFT direction)  → west
+//
+
+// Hardware connections (PCF8574 pins):
 Lane north = {1, 0, 1, 1, 1, 2}; // PCF1 P0,P1,P2
 Lane east = {1, 3, 1, 4, 1, 5};  // PCF1 P3,P4,P5
 Lane south = {1, 6, 1, 7, 2, 0}; // PCF1 P6,P7 + PCF2 P0
@@ -210,21 +229,49 @@ void setup()
     pcf1.begin();
     pcf2.begin();
 
-    WiFi.begin(ssid, password);
-    Serial.print("Connecting");
-    while (WiFi.status() != WL_CONNECTED)
+    // Try connecting to available WiFi networks
+    bool connected = false;
+    for (int i = 0; i < numNetworks && !connected; i++)
     {
-        delay(500);
-        Serial.print(".");
+        Serial.print("\nTrying: ");
+        Serial.println(wifiNetworks[i].ssid);
+        WiFi.begin(wifiNetworks[i].ssid, wifiNetworks[i].password);
+
+        int attempts = 0;
+        while (WiFi.status() != WL_CONNECTED && attempts < 20)
+        {
+            delay(500);
+            Serial.print(".");
+            attempts++;
+        }
+
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            connected = true;
+            Serial.println("\n✅ Connected to: " + String(wifiNetworks[i].ssid));
+            Serial.println("IP: " + WiFi.localIP().toString());
+        }
+        else
+        {
+            Serial.println("\n❌ Failed");
+        }
     }
-    Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
+
+    if (!connected)
+    {
+        Serial.println("\n❌ Could not connect to any WiFi network!");
+        Serial.println("Device will restart in 10 seconds...");
+        delay(10000);
+        ESP.restart();
+    }
 
     allStop();
 
     server.on("/control", handleControl);
     server.on("/mode", handleMode);
     server.begin();
-    Serial.println("Traffic Light System Ready!");
+    Serial.println("\n✅ Traffic Light System Ready!");
+    Serial.println("Access at: http://" + WiFi.localIP().toString());
 }
 
 // ====== Loop ======
