@@ -8,7 +8,7 @@ enum Mode
     AUTO,
     MANUAL
 };
-Mode currentMode = AUTO;
+Mode currentMode = MANUAL;
 
 // ====== Lane Structure ======
 struct Lane
@@ -50,28 +50,56 @@ void smartSetLight(const String &laneName, const String &color, bool state)
     Lane *lane = nullptr;
 
     if (laneName == "north")
+    {
         lane = &north;
+        Serial.println("-> Lane NORTH");
+    }
     else if (laneName == "east")
+    {
         lane = &east;
+        Serial.println("-> Lane EAST");
+    }
     else if (laneName == "south")
+    {
         lane = &south;
+        Serial.println("-> Lane SOUTH");
+    }
     else if (laneName == "west")
+    {
         lane = &west;
+        Serial.println("-> Lane WEST");
+    }
     else
+    {
+        Serial.print("ERROR: Unknown lane: ");
+        Serial.println(laneName);
         return;
+    }
 
     if (color == "green" && state)
     {
         allStop();
         setLane(*lane, 0, 0, 1);
+        Serial.println("-> LED: GREEN");
     }
-    else if (color == "yellow")
+    else if (color == "yellow" && state)
     {
-        setLane(*lane, 0, state, 0);
+        allStop();
+        setLane(*lane, 0, 1, 0);
+        Serial.println("-> LED: YELLOW");
     }
-    else if (color == "red")
+    else if (color == "red" && state)
     {
-        setLane(*lane, state, 0, 0);
+        allStop();
+        setLane(*lane, 1, 0, 0);
+        Serial.println("-> LED: RED");
+    }
+    else
+    {
+        Serial.print("Warning: color='");
+        Serial.print(color);
+        Serial.print("' state=");
+        Serial.println(state);
     }
 }
 
@@ -144,34 +172,57 @@ void handleSerialCommand()
         String command = Serial.readStringUntil('\n');
         command.trim();
 
+        // Remove any carriage return
+        if (command.endsWith("\r"))
+        {
+            command = command.substring(0, command.length() - 1);
+        }
+
         if (command.length() == 0)
             return;
+
+        // DEBUG: Show raw command received
+        Serial.print("RX: [");
+        Serial.print(command);
+        Serial.println("]");
 
         // Parse format: "lane,color,state"
         // Example: "north,green,1"
         int commaIndex1 = command.indexOf(',');
         int commaIndex2 = command.lastIndexOf(',');
 
-        if (commaIndex1 == -1 || commaIndex2 == -1)
+        if (commaIndex1 == -1 || commaIndex2 == -1 || commaIndex1 >= commaIndex2)
+        {
+            Serial.println("ERROR: Invalid format");
             return;
+        }
 
         String lane = command.substring(0, commaIndex1);
         String color = command.substring(commaIndex1 + 1, commaIndex2);
-        int state = command.substring(commaIndex2 + 1).toInt();
+        String stateStr = command.substring(commaIndex2 + 1);
+        int state = stateStr.toInt();
+
+        // DEBUG: Show parsed values
+        Serial.print("PARSED: Lane=");
+        Serial.print(lane);
+        Serial.print(" Color=");
+        Serial.print(color);
+        Serial.print(" State=");
+        Serial.println(state);
 
         smartSetLight(lane, color, state);
-        Serial.println("OK: " + command);
+        Serial.println("OK");
     }
 }
 
 // ====== Loop ======
 void loop()
 {
+    // Handle incoming serial commands
+    handleSerialCommand();
+
     if (currentMode == AUTO)
     {
         autoTrafficControl();
     }
-
-    // Handle incoming serial commands
-    handleSerialCommand();
 }
