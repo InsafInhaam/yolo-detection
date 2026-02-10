@@ -2,7 +2,6 @@ import cv2
 import json
 import time
 import numpy as np
-import serial
 from ultralytics import YOLO
 
 # =========================
@@ -12,9 +11,6 @@ from ultralytics import YOLO
 CAMERA_INDEX = 0
 MODEL_PATH = "yolov8l.pt"
 LANE_FILE = "lanes.json"
-
-SERIAL_PORT = "/dev/cu.debug-console"  # Arduino serial port
-BAUD_RATE = 115200
 
 VEHICLE_CLASSES = ["car", "truck", "bus"]
 
@@ -27,14 +23,6 @@ LANE_DIRECTIONS = {
     "lane_2": "DOWN",
     "lane_3": "RIGHT",
     "lane_4": "LEFT",
-}
-
-# Map Python lanes to Arduino lanes
-LANE_TO_ARDUINO = {
-    "lane_1": "north",   # UP
-    "lane_2": "south",   # DOWN
-    "lane_3": "east",    # RIGHT
-    "lane_4": "west",    # LEFT
 }
 
 # =========================
@@ -77,6 +65,16 @@ cap = cv2.VideoCapture(CAMERA_INDEX)
 if not cap.isOpened():
     raise RuntimeError("❌ Webcam not detected")
 
+print("✅ Webcam opened. Starting detection...")
+cv2.namedWindow("Intersection")
+
+# =========================
+# VEHICLE MEMORY (lightweight tracking)
+# =========================
+
+vehicle_memory = {}
+vehicle_id_counter = 0
+
 # =========================
 # HELPERS
 # =========================
@@ -102,20 +100,6 @@ def infer_direction(prev, curr, threshold=8):
         return "DOWN" if dy > 0 else "UP"
 
 
-def send_to_arduino(lane, color):
-    """Send traffic light command to Arduino via serial"""
-    try:
-        arduino_lane = LANE_TO_ARDUINO.get(lane)
-        if not arduino_lane or not ser or not ser.is_open:
-            return
-
-        # Format: "lane,color,state\n" e.g., "north,green,1\n"
-        command = f"{arduino_lane},{color.lower()},1\n"
-        ser.write(command.encode())
-    except Exception as e:
-        pass  # Silently continue if serial fails
-
-
 def update_traffic_lights():
     global light_state, current_lane_index, last_switch_time
 
@@ -124,56 +108,16 @@ def update_traffic_lights():
     if light_state == "GREEN" and elapsed >= GREEN_TIME:
         light_state = "YELLOW"
         last_switch_time = time.time()
-        # Send yellow signal to active lane
-        active_lane = lane_order[current_lane_index]
-        send_to_arduino(active_lane, "yellow")
 
     elif light_state == "YELLOW" and elapsed >= YELLOW_TIME:
         light_state = "GREEN"
         current_lane_index = (current_lane_index + 1) % len(lane_order)
         last_switch_time = time.time()
-        # Send green to new active lane
-        active_lane = lane_order[current_lane_index]
-        send_to_arduino(active_lane, "green")
 
     active_lane = lane_order[current_lane_index]
 
     for lane in lanes:
         lanes[lane]["signal"] = light_state if lane == active_lane else "RED"
-
-
-# =========================
-# INIT SERIAL CONNECTION
-# =========================
-
-print("✅ Webcam opened. Starting detection...")
-
-# Initialize serial connection
-ser = None
-try:
-    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-    time.sleep(2)  # Wait for Arduino to initialize
-    print(f"✅ Serial connection established on {SERIAL_PORT}")
-    # Send initial green to first lane
-    send_to_arduino(lane_order[0], "green")
-    print(f"✅ Initial green signal sent to {lane_order[0]}")
-except Exception as e:
-    print(f"⚠️  Serial connection failed: {e}")
-    print("Continuing without Arduino control...")
-    ser = None
-
-cv2.namedWindow("Intersection")
-
-# =========================
-# VEHICLE MEMORY (lightweight tracking)
-# =========================
-
-vehicle_memory = {}
-vehicle_id_counter = 0
-
-# =========================
-# MAIN LOOP
-# =========================
 
 
 # =========================
@@ -242,7 +186,7 @@ while True:
                 1
             )
 
-        vehicle_memory[vid] = {"pos": centroid, "time": now, "lane": lane}
+        vehicle_memory[vid] = {"pos": centroid, "time": now}
 
     # DRAW LANES
     for lane, data in lanes.items():
@@ -261,29 +205,15 @@ while True:
             2
         )
 
-    # Compute per-lane vehicle counts (vehicles seen recently)
-    lane_counts = {l: 0 for l in lanes}
-    for vid, v in vehicle_memory.items():
-        if now - v.get("time", 0) <= EMPTY_TIMEOUT:
-            l = v.get("lane")
-            if l in lane_counts:
-                lane_counts[l] += 1
-
     # TERMINAL OUTPUT
     print("\n==============================")
     for lane, data in lanes.items():
-        count = lane_counts.get(lane, 0)
         print(
-            f"{lane}: {data['signal']} | {'OCCUPIED' if data['occupied'] else 'EMPTY'} | Count: {count}")
+            f"{lane}: {data['signal']} | {'OCCUPIED' if data['occupied'] else 'EMPTY'}")
 
     cv2.imshow("Intersection", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-
-# Cleanup: Close serial connection
-if ser and ser.is_open:
-    ser.close()
-    print("\n✅ Serial connection closed")
 
 cap.release()
 cv2.destroyAllWindows()
