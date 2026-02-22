@@ -1,271 +1,367 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Traffic Intersection Monitor</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 20px;
-            align-items: start;
-        }
-
-        .video-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .video-container img {
-            height: auto;
-            border-radius: 10px;
-            display: block;
-        }
-
-        .sidebar {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .sidebar h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-        }
-
-        .lanes-status {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .lane-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            border-left: 5px solid #ccc;
-            transition: all 0.3s ease;
-        }
-
-        .lane-card:hover {
-            transform: translateX(5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .lane-card.green {
-            border-left-color: #00ff00;
-            background: #e8f5e9;
-        }
-
-        .lane-card.yellow {
-            border-left-color: #ffff00;
-            background: #fffde7;
-        }
-
-        .lane-card.red {
-            border-left-color: #ff0000;
-            background: #ffebee;
-        }
-
-        .lane-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .lane-name {
-            font-weight: bold;
-            font-size: 1.1em;
-            color: #333;
-        }
-
-        .signal-light {
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .signal-light.green {
-            background: #00ff00;
-            box-shadow: 0 0 15px #00ff00;
-        }
-
-        .signal-light.yellow {
-            background: #ffff00;
-            box-shadow: 0 0 15px #ffff00;
-        }
-
-        .signal-light.red {
-            background: #ff0000;
-            box-shadow: 0 0 15px #ff0000;
-        }
-
-        .lane-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .vehicle-count {
-            font-weight: bold;
-            color: #667eea;
-            background: white;
-            padding: 3px 10px;
-            border-radius: 15px;
-        }
-
-        .stats-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .stats-box h3 {
-            margin-bottom: 10px;
-            font-size: 1em;
-        }
-
-        .stats-number {
-            font-size: 2em;
-            font-weight: bold;
-        }
-
-        .legend {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .legend h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 1em;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
-        }
-
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .footer {
-            text-align: center;
-            color: white;
-            margin-top: 30px;
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
     </style>
-</head>
-<body>
+    <style>
+      :root {
+        --bg-1: #0b3d3a;
+        --bg-2: #f4a261;
+        --panel: #ffffff;
+        --accent: #1f7a8c;
+        --accent-2: #2a9d8f;
+        --ink: #1d2b2a;
+        --muted: #5c6b6a;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Space Grotesk", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 900px;
+        gap: 20px;
+        align-items: start;
+      }
+
+      .video-container {
+        background: var(--panel);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .video-container img {
+        height: auto;
+        border-radius: 10px;
+        display: block;
+      }
+
+      .sidebar {
+        background: var(--panel);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .sidebar-container {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 20px;
+      }
+
+      .sidebar-col1,
+      .sidebar-col2 {
+        width: 50%;
+      }
+
+      .sidebar h2 {
+        color: var(--accent);
+        margin-bottom: 20px;
+        font-size: 1.5em;
+        border-bottom: 3px solid var(--accent);
+        padding-bottom: 10px;
+      }
+
+      .lanes-status {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .lane-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        border-left: 5px solid #ccc;
+        transition: all 0.3s ease;
+      }
+
+      .lane-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .lane-card.green {
+        border-left-color: #00ff00;
+        background: #e8f5e9;
+      }
+
+      .lane-card.yellow {
+        border-left-color: #ffff00;
+        background: #fffde7;
+      }
+
+      .lane-card.red {
+        border-left-color: #ff0000;
+        background: #ffebee;
+      }
+
+      .lane-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .lane-name {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: var(--ink);
+      }
+
+      .signal-light {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .signal-light.green {
+        background: #00ff00;
+        box-shadow: 0 0 15px #00ff00;
+      }
+
+      .signal-light.yellow {
+        background: #ffff00;
+        box-shadow: 0 0 15px #ffff00;
+      }
+
+      .signal-light.red {
+        background: #ff0000;
+        box-shadow: 0 0 15px #ff0000;
+      }
+
+      .lane-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9em;
+        color: var(--muted);
+      }
+
+      .vehicle-count {
+        font-weight: bold;
+        color: var(--accent);
+        background: white;
+        padding: 3px 10px;
+        border-radius: 15px;
+      }
+
+      .stats-box {
+        margin-top: 20px;
+        padding: 15px;
+        background: linear-gradient(
+          135deg,
+          var(--accent) 0%,
+          var(--accent-2) 100%
+        );
+        color: white;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .stats-box h3 {
+        margin-bottom: 10px;
+        font-size: 1em;
+      }
+
+      .stats-number {
+        font-size: 2em;
+        font-weight: bold;
+      }
+
+      .legend {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+      }
+
+      .legend h3 {
+        color: var(--accent);
+        margin-bottom: 10px;
+        font-size: 1em;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 0.9em;
+      }
+
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+      }
+
+      .simulation-panel {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+      }
+
+      .simulation-panel h3 {
+        color: var(--accent);
+        margin-bottom: 12px;
+        font-size: 1em;
+      }
+
+      .intersection-card {
+        background: white;
+        border-radius: 10px;
+        padding: 12px;
+        border: 1px solid rgba(31, 122, 140, 0.2);
+        margin-bottom: 10px;
+      }
+
+      .intersection-title {
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 8px;
+      }
+
+      .simulation-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9em;
+        color: var(--muted);
+        padding: 4px 0;
+        border-bottom: 1px dashed rgba(31, 122, 140, 0.15);
+      }
+
+      .simulation-row:last-child {
+        border-bottom: none;
+      }
+
+      .sim-count {
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      @media (max-width: 1200px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .footer {
+        text-align: center;
+        color: white;
+        margin-top: 30px;
+        font-size: 0.9em;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
     <div class="container">
-        <h1>🚦 Traffic Intersection Monitor</h1>
-        
-        <div class="main-grid">
-            <div class="video-container">
-                <img src="{{ url_for('video_feed') }}" alt="Live Traffic Feed">
-            </div>
-            
-            <div class="sidebar">
-                <h2>Lane Status</h2>
-                <div class="lanes-status" id="lanes-status">
-                    <!-- Lane cards will be inserted here -->
-                </div>
-                
-                <div class="stats-box">
-                    <h3>Total Active Vehicles</h3>
-                    <div class="stats-number" id="total-vehicles">0</div>
-                </div>
+      <h1>🚦 Traffic Intersection Monitor</h1>
 
-                <div class="legend">
-                    <h3>Traffic Signals</h3>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #00ff00;"></div>
-                        <span><strong>Green:</strong> Go</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #ffff00;"></div>
-                        <span><strong>Yellow:</strong> Prepare to Stop</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #ff0000;"></div>
-                        <span><strong>Red:</strong> Stop</span>
-                    </div>
-                </div>
-            </div>
+      <div class="main-grid">
+        <div class="video-container">
+          <img src="{{ url_for('video_feed') }}" alt="Live Traffic Feed" />
         </div>
 
-        <div class="footer">
-            <p>Real-time vehicle detection using YOLOv8 & OpenCV | Flask Web Application</p>
+        <div class="sidebar">
+          <h2>Lane Status</h2>
+          <div class="sidebar-container">
+            <div class="sidebar-col1">
+              <div class="lanes-status" id="lanes-status">
+                <!-- Lane cards will be inserted here -->
+              </div>
+
+              <div class="stats-box">
+                <h3>Total Active Vehicles</h3>
+                <div class="stats-number" id="total-vehicles">0</div>
+              </div>
+            </div>
+            <div class="sidebar-col2">
+              <div class="legend">
+                <h3>Traffic Signals</h3>
+                <div class="legend-item">
+                  <div class="legend-color" style="background: #00ff00"></div>
+                  <span><strong>Green:</strong> Go</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-color" style="background: #ffff00"></div>
+                  <span><strong>Yellow:</strong> Prepare to Stop</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-color" style="background: #ff0000"></div>
+                  <span><strong>Red:</strong> Stop</span>
+                </div>
+              </div>
+
+              <div class="simulation-panel">
+                <h3>Simulation Intersections</h3>
+                <div id="simulation-status">
+                  <!-- Simulation cards will be inserted here -->
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="footer">
+        <p>
+          Real-time vehicle detection using YOLOv8 & OpenCV | Flask Web
+          Application
+        </p>
+      </div>
     </div>
 
     <script>
-        function updateLaneStatus() {
-            fetch('/lane_status')
-                .then(response => response.json())
-                .then(data => {
-                    const container = document.getElementById('lanes-status');
-                    const totalVehicles = data.reduce((sum, lane) => sum + lane.count, 0);
-                    
-                    document.getElementById('total-vehicles').textContent = totalVehicles;
-                    
-                    container.innerHTML = data.map(lane => `
+      function updateLaneStatus() {
+        fetch("/lane_status")
+          .then((response) => response.json())
+          .then((data) => {
+            const container = document.getElementById("lanes-status");
+            const totalVehicles = data.reduce(
+              (sum, lane) => sum + lane.count,
+              0,
+            );
+
+            document.getElementById("total-vehicles").textContent =
+              totalVehicles;
+
+            container.innerHTML = data
+              .map(
+                (lane) => `
                         <div class="lane-card ${lane.signal.toLowerCase()}">
                             <div class="lane-header">
                                 <span class="lane-name">${lane.lane.toUpperCase()} - ${lane.direction}</span>
@@ -276,14 +372,62 @@
                                 <span class="vehicle-count">🚗 ${lane.count}</span>
                             </div>
                         </div>
-                    `).join('');
-                })
-                .catch(error => console.error('Error fetching lane status:', error));
-        }
+                    `,
+              )
+              .join("");
+          })
+          .catch((error) =>
+            console.error("Error fetching lane status:", error),
+          );
+      }
 
-        // Update lane status every 500ms
-        setInterval(updateLaneStatus, 500);
-        updateLaneStatus(); // Initial load
+      function updateSimulationStatus() {
+        fetch("/simulation_status")
+          .then((response) => response.json())
+          .then((data) => {
+            const container = document.getElementById("simulation-status");
+
+            if (!Array.isArray(data) || data.length === 0) {
+              container.innerHTML =
+                '<div class="intersection-card">No simulation data available.</div>';
+              return;
+            }
+
+            container.innerHTML = data
+              .map((intersection) => {
+                const rows = (intersection.lanes || [])
+                  .map((lane) => {
+                    const outgoing = lane.outgoing_to
+                      ? ` -> ${lane.outgoing_to}`
+                      : "";
+                    return `
+                                <div class="simulation-row">
+                                    <span>${lane.lane}${outgoing}</span>
+                                    <span class="sim-count">${lane.count}</span>
+                                </div>
+                            `;
+                  })
+                  .join("");
+
+                return `
+                            <div class="intersection-card">
+                                <div class="intersection-title">${intersection.intersection}</div>
+                                ${rows || '<div class="simulation-row">No lanes configured.</div>'}
+                            </div>
+                        `;
+              })
+              .join("");
+          })
+          .catch((error) =>
+            console.error("Error fetching simulation status:", error),
+          );
+      }
+
+      // Update lane status every 500ms
+      setInterval(updateLaneStatus, 500);
+      setInterval(updateSimulationStatus, 1000);
+      updateLaneStatus(); // Initial load
+      updateSimulationStatus();
     </script>
-</body>
+  </body>
 </html>

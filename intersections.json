@@ -1,0 +1,32 @@
+{
+  "intersections": {
+    "intersection_1": {
+      "lanes": [
+        "lane_1",
+        "lane_2",
+        "lane_3",
+        "lane_4",
+        "lane_5",
+        "lane_6",
+        "lane_7"
+      ],
+      "outgoing": {
+        "lane_3": "intersection_2.lane_3",
+        "lane_4": "intersection_2.lane_4"
+      }
+    },
+    "intersection_2": {
+      "lanes": [
+        "lane_1",
+        "lane_2",
+        "lane_3",
+        "lane_4",
+        "lane_5",
+        "lane_6",
+        "lane_7",
+        "lane_8"
+      ],
+      "outgoing": {}
+    }
+  }
+}
