@@ -6,6 +6,8 @@ import numpy as np
 import os
 from ultralytics import YOLO
 from threading import Lock
+from pymongo import MongoClient
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -17,6 +19,10 @@ CAMERA_INDEX = "videos/traffic.mp4"
 MODEL_PATH = "yolov8l.pt"
 LANE_FILE = os.environ.get("LANE_FILE", "real_lane.json")
 INTERSECTIONS_FILE = os.environ.get("INTERSECTIONS_FILE", "intersections.json")
+MONGODB_URI = os.environ.get(
+    "MONGODB_URI", "mongodb+srv://insafinhaam732:L9XrUu9J5AnIuGVt@cluster0.cng0d5o.mongodb.net/?appName=Cluster0")
+MONGODB_DB = os.environ.get("MONGODB_DB", "traffic_monitoring")
+MONGO_LOG_INTERVAL = 2.0
 
 VEHICLE_CLASSES = ["car", "truck", "bus", "motorcycle", "bicycle"]
 
@@ -139,6 +145,19 @@ vehicle_memory = {}
 vehicle_id_counter = 0
 lock = Lock()
 
+last_mongo_log = 0.0
+mongo_client = None
+mongo_db = None
+
+try:
+    mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+    mongo_client.admin.command('ping')
+    mongo_db = mongo_client[MONGODB_DB]
+    print(f"✅ Connected to MongoDB: {MONGODB_DB}")
+except Exception as e:
+    print(f"⚠️  MongoDB connection failed: {e}")
+    mongo_db = None
+
 # =========================
 # HELPERS
 # =========================
@@ -189,6 +208,52 @@ def _handoff_amount(count):
     if transfer < SIM_MIN_HANDOFF:
         transfer = SIM_MIN_HANDOFF
     return min(transfer, count)
+
+
+def save_to_mongodb():
+    global last_mongo_log
+    if mongo_db is None:
+        return
+
+    now = time.time()
+    if now - last_mongo_log < MONGO_LOG_INTERVAL:
+        return
+    last_mongo_log = now
+
+    try:
+        lanes_collection = mongo_db["lanes"]
+        simulation_collection = mongo_db["simulations"]
+
+        timestamp = datetime.utcnow()
+
+        lanes_data = {
+            "timestamp": timestamp,
+            "lanes": []
+        }
+        for lane, data in lanes.items():
+            lanes_data["lanes"].append({
+                "lane": lane,
+                "count": data["count"],
+                "signal": data["signal"],
+                "occupied": data["occupied"]
+            })
+        lanes_collection.insert_one(lanes_data)
+
+        sim_data = {
+            "timestamp": timestamp,
+            "intersections": []
+        }
+        for intersection_id, lanes_map in simulation_counts.items():
+            sim_data["intersections"].append({
+                "intersection": intersection_id,
+                "lanes": [
+                    {"lane": lane_id, "count": count}
+                    for lane_id, count in lanes_map.items()
+                ]
+            })
+        simulation_collection.insert_one(sim_data)
+    except Exception as e:
+        print(f"MongoDB logging error: {e}")
 
 
 def tick_simulation():
@@ -406,6 +471,7 @@ def generate_frames():
                 lanes[lane]["count"] = lane_counts.get(lane, 0)
 
             update_traffic_lights(lane_counts)
+            save_to_mongodb()
 
             # Draw lanes with signals
             for lane, data in lanes.items():
